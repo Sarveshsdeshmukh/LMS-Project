@@ -12,25 +12,46 @@ if(isset($_POST['tutor_fetch'])){
 
    $tutor_email = $_POST['tutor_email'];
    $tutor_email = filter_var($tutor_email, FILTER_SANITIZE_STRING);
-   $select_tutor = pg_prepare($conn, "select_tutor", "SELECT * FROM tutors WHERE email = $1");
+   
+   // Prepare the select_tutor statement if it doesn't exist
+   if (!pg_prepare($conn, "select_tutor", "SELECT * FROM tutors WHERE email = $1")) {
+      echo '<p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p>';
+      exit; // Stop execution if there's an error
+   }
    $select_tutor_result = pg_execute($conn, "select_tutor", array($tutor_email));
 
    $fetch_tutor = pg_fetch_assoc($select_tutor_result);
    $tutor_id = $fetch_tutor['id'];
 
-   $count_playlists = pg_prepare($conn, "count_playlists", "SELECT * FROM playlist WHERE tutor_id = $1");
+   // Prepare the count_playlists statement if it doesn't exist
+   if (!pg_prepare($conn, "count_playlists", "SELECT * FROM playlist WHERE tutor_id = $1")) {
+      echo '<p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p>';
+      exit; // Stop execution if there's an error
+   }
    $count_playlists_result = pg_execute($conn, "count_playlists", array($tutor_id));
    $total_playlists = pg_num_rows($count_playlists_result);
 
-   $count_contents = pg_prepare($conn, "count_contents", "SELECT * FROM content WHERE tutor_id = $1");
+   // Prepare the count_contents statement if it doesn't exist
+   if (!pg_prepare($conn, "count_contents", "SELECT * FROM content WHERE tutor_id = $1")) {
+      echo '<p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p>';
+      exit; // Stop execution if there's an error
+   }
    $count_contents_result = pg_execute($conn, "count_contents", array($tutor_id));
    $total_contents = pg_num_rows($count_contents_result);
 
-   $count_likes = pg_prepare($conn, "count_likes", "SELECT * FROM likes WHERE tutor_id = $1");
+   // Prepare the count_likes statement if it doesn't exist
+   if (!pg_prepare($conn, "count_likes", "SELECT * FROM likes WHERE tutor_id = $1")) {
+      echo '<p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p>';
+      exit; // Stop execution if there's an error
+   }
    $count_likes_result = pg_execute($conn, "count_likes", array($tutor_id));
    $total_likes = pg_num_rows($count_likes_result);
 
-   $count_comments = pg_prepare($conn, "count_comments", "SELECT * FROM comments WHERE tutor_id = $1");
+   // Prepare the count_comments statement if it doesn't exist
+   if (!pg_prepare($conn, "count_comments", "SELECT * FROM comments WHERE tutor_id = $1")) {
+      echo '<p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p>';
+      exit; // Stop execution if there's an error
+   }
    $count_comments_result = pg_execute($conn, "count_comments", array($tutor_id));
    $total_comments = pg_num_rows($count_comments_result);
 
@@ -68,15 +89,15 @@ if(isset($_POST['tutor_fetch'])){
 
    <div class="details">
       <div class="tutor">
-         <img src="uploaded_files/<?= $fetch_tutor['image']; ?>" alt="">
-         <h3><?= $fetch_tutor['name']; ?></h3>
-         <span><?= $fetch_tutor['profession']; ?></span>
+         <img src="uploaded_files/<?= isset($fetch_tutor['image']) ? $fetch_tutor['image'] : ''; ?>" alt="">
+         <h3><?= isset($fetch_tutor['name']) ? $fetch_tutor['name'] : ''; ?></h3>
+         <span><?= isset($fetch_tutor['profession']) ? $fetch_tutor['profession'] : ''; ?></span>
       </div>
       <div class="flex">
-         <p>total playlists : <span><?= $total_playlists; ?></span></p>
-         <p>total videos : <span><?= $total_contents; ?></span></p>
-         <p>total likes : <span><?= $total_likes; ?></span></p>
-         <p>total comments : <span><?= $total_comments; ?></span></p>
+         <p>total playlists : <span><?= isset($total_playlists) ? $total_playlists : ''; ?></span></p>
+         <p>total videos : <span><?= isset($total_contents) ? $total_contents : ''; ?></span></p>
+         <p>total likes : <span><?= isset($total_likes) ? $total_likes : ''; ?></span></p>
+         <p>total comments : <span><?= isset($total_comments) ? $total_comments : ''; ?></span></p>
       </div>
    </div>
 
@@ -86,31 +107,33 @@ if(isset($_POST['tutor_fetch'])){
 
 <section class="courses">
 
-   <h1 class="heading">latest courese</h1>
+   <h1 class="heading">latest courses</h1>
 
    <div class="box-container">
 
       <?php
          $select_courses = pg_prepare($conn, "select_courses", "SELECT * FROM playlist WHERE tutor_id = $1 AND status = 'active'");
          $select_courses_result = pg_execute($conn, "select_courses", array($tutor_id));
-         if(pg_num_rows($select_courses_result) > 0){
+         if($select_courses_result && pg_num_rows($select_courses_result) > 0){
             while($fetch_course = pg_fetch_assoc($select_courses_result)){
                $course_id = $fetch_course['id'];
 
-               $select_tutor = pg_prepare($conn, "select_tutor", "SELECT * FROM tutors WHERE id = $1");
+               // Reusing the select_tutor prepared statement
                $select_tutor_result = pg_execute($conn, "select_tutor", array($fetch_course['tutor_id']));
                $fetch_tutor = pg_fetch_assoc($select_tutor_result);
+               // Check if $fetch_course['date'] exists before accessing it
+               $course_date = isset($fetch_course['date']) ? $fetch_course['date'] : '';
       ?>
       <div class="box">
          <div class="tutor">
-            <img src="uploaded_files/<?= $fetch_tutor['image']; ?>" alt="">
+            <img src="uploaded_files/<?= isset($fetch_tutor['image']) ? $fetch_tutor['image'] : ''; ?>" alt="">
             <div>
-               <h3><?= $fetch_tutor['name']; ?></h3>
-               <span><?= $fetch_course['date']; ?></span>
+               <h3><?= isset($fetch_tutor['name']) ? $fetch_tutor['name'] : ''; ?></h3>
+               <span><?= $course_date; ?></span>
             </div>
          </div>
-         <img src="uploaded_files/<?= $fetch_course['thumb']; ?>" class="thumb" alt="">
-         <h3 class="title"><?= $fetch_course['title']; ?></h3>
+         <img src="uploaded_files/<?= isset($fetch_course['thumb']) ? $fetch_course['thumb'] : ''; ?>" class="thumb" alt="">
+         <h3 class="title"><?= isset($fetch_course['title']) ? $fetch_course['title'] : ''; ?></h3>
          <a href="playlist.php?get_id=<?= $course_id; ?>" class="inline-btn">view playlist</a>
       </div>
       <?php
@@ -125,15 +148,6 @@ if(isset($_POST['tutor_fetch'])){
 </section>
 
 <!-- courses section ends -->
-
-
-
-
-
-
-
-
-
 
 <?php include 'components/footer.php'; ?>    
 

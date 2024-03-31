@@ -49,29 +49,32 @@ if(isset($_COOKIE['user_id'])){
       </div>
 
       <?php
-         // PostgreSQL equivalent of MySQL queries
+         // Check if the prepared statement exists before preparing it
          $select_tutors = pg_prepare($conn, "select_tutors", "SELECT * FROM tutors");
-         $result = pg_execute($conn, "select_tutors", array());
-         if($result && pg_num_rows($result) > 0){
-            while($fetch_tutor = pg_fetch_assoc($result)){
-
-               $tutor_id = $fetch_tutor['id'];
-
-               $count_playlists = pg_prepare($conn, "count_playlists", "SELECT * FROM playlist WHERE tutor_id = $1");
-               $result_playlists = pg_execute($conn, "count_playlists", array($tutor_id));
-               $total_playlists = pg_num_rows($result_playlists);
-
-               $count_contents = pg_prepare($conn, "count_contents", "SELECT * FROM content WHERE tutor_id = $1");
-               $result_contents = pg_execute($conn, "count_contents", array($tutor_id));
-               $total_contents = pg_num_rows($result_contents);
-
-               $count_likes = pg_prepare($conn, "count_likes", "SELECT * FROM likes WHERE tutor_id = $1");
-               $result_likes = pg_execute($conn, "count_likes", array($tutor_id));
-               $total_likes = pg_num_rows($result_likes);
-
-               $count_comments = pg_prepare($conn, "count_comments", "SELECT * FROM comments WHERE tutor_id = $1");
-               $result_comments = pg_execute($conn, "count_comments", array($tutor_id));
-               $total_comments = pg_num_rows($result_comments);
+         if(!$select_tutors) {
+            echo '<p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p>';
+         } else {
+            $result = pg_execute($conn, "select_tutors", array());
+            if($result && pg_num_rows($result) > 0){
+               while($fetch_tutor = pg_fetch_assoc($result)){
+   
+                  $tutor_id = $fetch_tutor['id'];
+   
+                  $count_playlists = pg_prepare($conn, "count_playlists_$tutor_id", "SELECT * FROM playlist WHERE tutor_id = $1");
+                  $result_playlists = pg_execute($conn, "count_playlists_$tutor_id", array($tutor_id));
+                  $total_playlists = pg_num_rows($result_playlists);
+   
+                  $count_contents = pg_prepare($conn, "count_contents_$tutor_id", "SELECT * FROM content WHERE tutor_id = $1");
+                  $result_contents = pg_execute($conn, "count_contents_$tutor_id", array($tutor_id));
+                  $total_contents = pg_num_rows($result_contents);
+   
+                  $count_likes = pg_prepare($conn, "count_likes_$tutor_id", "SELECT * FROM likes WHERE tutor_id = $1");
+                  $result_likes = pg_execute($conn, "count_likes_$tutor_id", array($tutor_id));
+                  $total_likes = pg_num_rows($result_likes);
+   
+                  $count_comments = pg_prepare($conn, "count_comments_$tutor_id", "SELECT * FROM comments WHERE tutor_id = $1");
+                  $result_comments = pg_execute($conn, "count_comments_$tutor_id", array($tutor_id));
+                  $total_comments = pg_num_rows($result_comments);
       ?>
       <div class="box">
          <div class="tutor">
@@ -91,9 +94,10 @@ if(isset($_COOKIE['user_id'])){
          </form>
       </div>
       <?php
+               }
+            }else{
+               echo '<p class="empty">no tutors found!</p>';
             }
-         }else{
-            echo '<p class="empty">no tutors found!</p>';
          }
       ?>
 

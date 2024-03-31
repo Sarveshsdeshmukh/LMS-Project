@@ -9,16 +9,16 @@ if(isset($_COOKIE['user_id'])){
 }
 
 $select_likes = pg_prepare($conn, "select_likes", "SELECT * FROM likes WHERE user_id = $1");
-pg_execute($conn, "select_likes", array($user_id));
-$total_likes = pg_num_rows($select_likes);
+$result_likes = pg_execute($conn, "select_likes", array($user_id));
+$total_likes = pg_num_rows($result_likes);
 
 $select_comments = pg_prepare($conn, "select_comments", "SELECT * FROM comments WHERE user_id = $1");
-pg_execute($conn, "select_comments", array($user_id));
-$total_comments = pg_num_rows($select_comments);
+$result_comments = pg_execute($conn, "select_comments", array($user_id));
+$total_comments = pg_num_rows($result_comments);
 
 $select_bookmark = pg_prepare($conn, "select_bookmark", "SELECT * FROM bookmark WHERE user_id = $1");
-pg_execute($conn, "select_bookmark", array($user_id));
-$total_bookmarked = pg_num_rows($select_bookmark);
+$result_bookmark = pg_execute($conn, "select_bookmark", array($user_id));
+$total_bookmarked = pg_num_rows($result_bookmark);
 
 ?>
 
@@ -89,18 +89,6 @@ $total_bookmarked = pg_num_rows($select_bookmark);
          </div>
       </div>
 
-      <div class="box">
-         <h3 class="title">popular topics</h3>
-         <div class="flex">
-            <a href="#"><i class="fab fa-html5"></i><span>HTML</span></a>
-            <a href="#"><i class="fab fa-css3"></i><span>CSS</span></a>
-            <a href="#"><i class="fab fa-js"></i><span>javascript</span></a>
-            <a href="#"><i class="fab fa-react"></i><span>react</span></a>
-            <a href="#"><i class="fab fa-php"></i><span>PHP</span></a>
-            <a href="#"><i class="fab fa-bootstrap"></i><span>bootstrap</span></a>
-         </div>
-      </div>
-
       <div class="box tutor">
          <h3 class="title">become a tutor</h3>
          <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ipsa, laudantium.</p>
@@ -123,32 +111,44 @@ $total_bookmarked = pg_num_rows($select_bookmark);
 
       <?php
          $select_courses = pg_prepare($conn, "select_courses", "SELECT * FROM playlist WHERE status = $1 ORDER BY date DESC LIMIT 6");
-         pg_execute($conn, "select_courses", array('active'));
-         if(pg_num_rows($select_courses) > 0){
-            while($fetch_course = pg_fetch_assoc($select_courses)){
+         $result_courses = pg_execute($conn, "select_courses", array('active'));
+         if(pg_num_rows($result_courses) > 0){
+            while($fetch_course = pg_fetch_assoc($result_courses)){
                $course_id = $fetch_course['id'];
 
-               $select_tutor = pg_prepare($conn, "select_tutor", "SELECT * FROM tutors WHERE id = $1");
-               pg_execute($conn, "select_tutor", array($fetch_course['tutor_id']));
-               $fetch_tutor = pg_fetch_assoc($select_tutor);
+               // Check if the prepared statement exists
+               $result_tutor_exists = pg_query_params($conn, "SELECT 1 FROM pg_prepared_statements WHERE name = $1", array('select_tutor'));
+               $tutor_exists_row = pg_fetch_assoc($result_tutor_exists);
+               if (!$tutor_exists_row) {
+                   // Prepare the statement only if it doesn't exist
+                   $select_tutor = pg_prepare($conn, "select_tutor", "SELECT * FROM tutors WHERE id = $1");
+               }
+
+               // Only execute the statement if it was prepared successfully
+               if(isset($select_tutor)) {
+                   $result_tutor = pg_execute($conn, "select_tutor", array($fetch_course['tutor_id']));
+                   if($result_tutor && pg_num_rows($result_tutor) > 0) {
+                       $fetch_tutor = pg_fetch_assoc($result_tutor);
       ?>
-      <div class="box">
-         <div class="tutor">
-            <img src="uploaded_files/<?= $fetch_tutor['image']; ?>" alt="">
-            <div>
-               <h3><?= $fetch_tutor['name']; ?></h3>
-               <span><?= $fetch_course['date']; ?></span>
-            </div>
-         </div>
-         <img src="uploaded_files/<?= $fetch_course['thumb']; ?>" class="thumb" alt="">
-         <h3 class="title"><?= $fetch_course['title']; ?></h3>
-         <a href="playlist.php?get_id=<?= $course_id; ?>" class="inline-btn">view playlist</a>
-      </div>
+                       <div class="box">
+                           <div class="tutor">
+                               <img src="uploaded_files/<?= $fetch_tutor['image']; ?>" alt="">
+                               <div>
+                                   <h3><?= $fetch_tutor['name']; ?></h3>
+                                   <span><?= $fetch_course['date']; ?></span>
+                               </div>
+                           </div>
+                           <img src="uploaded_files/<?= $fetch_course['thumb']; ?>" class="thumb" alt="">
+                           <h3 class="title"><?= $fetch_course['title']; ?></h3>
+                           <a href="playlist.php?get_id=<?= $course_id; ?>" class="inline-btn">view playlist</a>
+                       </div>
       <?php
+                   }
+               }
+            }
+         }else{
+            echo '<p class="empty">no courses added yet!</p>';
          }
-      }else{
-         echo '<p class="empty">no courses added yet!</p>';
-      }
       ?>
 
    </div>
@@ -160,17 +160,6 @@ $total_bookmarked = pg_num_rows($select_bookmark);
 </section>
 
 <!-- courses section ends -->
-
-
-
-
-
-
-
-
-
-
-
 
 <!-- footer section starts  -->
 <?php include 'components/footer.php'; ?>

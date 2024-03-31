@@ -2,11 +2,7 @@
 
 include 'components/connect.php';
 
-if(isset($_COOKIE['user_id'])){
-   $user_id = $_COOKIE['user_id'];
-}else{
-   $user_id = '';
-}
+$user_id = isset($_COOKIE['user_id']) ? $_COOKIE['user_id'] : '';
 
 ?>
 
@@ -48,9 +44,14 @@ if(isset($_COOKIE['user_id'])){
                   while($fetch_course = pg_fetch_assoc($result)){
                      $course_id = $fetch_course['id'];
 
+                     // Check if the prepared statement exists before preparing it
+                     if(!pg_prepare($conn, "select_tutor_" . $course_id, "SELECT * FROM tutors WHERE id = $1")) {
+                        echo '<div class="box"><p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p></div>';
+                        continue; // Skip to the next iteration of the loop
+                     }
+                     
                      // Fetch tutor details
-                     $select_tutor = pg_prepare($conn, "select_tutor", "SELECT * FROM tutors WHERE id = $1");
-                     $result_tutor = pg_execute($conn, "select_tutor", array($fetch_course['tutor_id']));
+                     $result_tutor = pg_execute($conn, "select_tutor_" . $course_id, array($fetch_course['tutor_id']));
                      if ($result_tutor && pg_num_rows($result_tutor) > 0) {
                         $fetch_tutor = pg_fetch_assoc($result_tutor);
       ?>
@@ -68,17 +69,17 @@ if(isset($_COOKIE['user_id'])){
                      </div>
       <?php
                      } else {
-                        echo '<p class="empty">Tutor details not found!</p>';
+                        echo '<div class="box"><p class="empty">Tutor details not found!</p></div>';
                      }
                   }
                } else {
-                  echo '<p class="empty">no courses added yet!</p>';
+                  echo '<div class="box"><p class="empty">No courses added yet!</p></div>';
                }
             } else {
-               echo "Error executing query: " . pg_last_error($conn);
+               echo '<div class="box"><p class="empty">Error executing query: ' . pg_last_error($conn) . '</p></div>';
             }
          } else {
-            echo "Error preparing query: " . pg_last_error($conn);
+            echo '<div class="box"><p class="empty">Error preparing query: ' . pg_last_error($conn) . '</p></div>';
          }
       ?>
 
